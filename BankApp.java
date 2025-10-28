@@ -1,32 +1,24 @@
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.*;
+//import java.util.concurrent.ConcurrentHashMap;
+//import java.util.concurrent.LinkedBlockingQueue;
+//import java.util.concurrent.ScheduledThreadPoolExecutor;
+//import java.util.concurrent.TimeUnit;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
 import java.util.*;
+//import java.util.ArrayList;
+//import java.util.List;
+
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.*;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 
 import java.io.InputStream;
 import java.util.Properties;
 
-import java.io.InputStream;
-import java.util.Properties;
+import java.io.IOException;
 
-import java.io.IOException; // Добавляем этот импорт
-import java.util.Properties;
-import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicInteger;  // Добавляем этот импорт
-
-
+// Класс Клиентов
 class Client {
     // Уникальный идентификатор клиента
     private final int id;
@@ -76,7 +68,7 @@ class Client {
         return false;
     }
 
-    // Снять средства
+    // Снять средства, проверка баланса
     public synchronized boolean withdraw(double amount) {
         if (amount > 0 && amount <= balance) {
             balance -= amount;
@@ -120,7 +112,7 @@ class Client {
     }
 }
 
-
+// Кассы, исполнители транзакций
 class Cashier implements Runnable {
     // Идентификатор кассы
     private final int id;
@@ -177,7 +169,7 @@ class Cashier implements Runnable {
                 return;
             }
 
-            long processingTime = System.currentTimeMillis() - startTime;
+            long processingTime = System.currentTimeMillis() - startTime; // время выполнения
             bank.notifyObservers("Касса " + id + ": транзакция " + transaction.getType() +
                     " обработана за " + processingTime + " мс");
         } catch (Exception e) {
@@ -243,7 +235,7 @@ interface Observer {
 
 class Bank {
     // Хранилище клиентов
-    private final ConcurrentHashMap<Integer, Client> clients = new ConcurrentHashMap<>();
+    private final  ConcurrentHashMap<Integer, Client> clients = new ConcurrentHashMap<>();
 
     // Курсы валют
     private final ConcurrentHashMap<String, Double> exchangeRates = new ConcurrentHashMap<>();
@@ -263,7 +255,7 @@ class Bank {
     // Счетчик транзакций обработанных
     private AtomicInteger processedTransactionsCount = new AtomicInteger(0);
 
-    // Добавляем новый счетчик поданных
+    // Счетчик транзакций поданных
     private AtomicInteger submittedTransactionsCount = new AtomicInteger(0);
 
     public void incrementTransactionsCount() {
@@ -291,7 +283,7 @@ class Bank {
         // Запуск касс через ExecutorService
         startCashiers();
 
-        // Инициализация курсов валют
+        // Дефолтные курсы валют
         exchangeRates.put("USD", 1.0);
         exchangeRates.put("EUR", 0.86);
         exchangeRates.put("RUB", 80.97);
@@ -307,7 +299,7 @@ class Bank {
             notifyObservers("Невозможно запустить: сервис уже остановлен");
         }
     }
-
+// Каждая касса попадает в пул потоков
     private void startCashiers() {
         for (Cashier cashier : cashiers) {
             executorService.submit(cashier);
@@ -318,11 +310,12 @@ class Bank {
     public void addObserver(Observer observer) {
         observers.add(observer);
     }
-    // ЕДИНЫЙ метод уведомления наблюдателей
+
+    // Метод уведомления наблюдателей
     public synchronized void notifyObservers(String message) {
         synchronized (observers) {
             for (Observer observer : observers) {
-                observer.update(message);
+                observer.update(message); // каждый наблюдатель получает уведомление (сейчас он 1)
             }
         }
     }
@@ -346,7 +339,7 @@ class Bank {
             notifyObservers("Установлен новый курс для " + currency + ": " + rate);
         }
     }
-
+// Метод конвертации: amount - сумма для конвертации, fromCurrency - исходная валюта, oCurrency - целевая валюта
     public double convertCurrency(double amount, String fromCurrency, String toCurrency) {
         synchronized (exchangeRates) {
             double fromRate = exchangeRates.get(fromCurrency);
@@ -510,16 +503,17 @@ public void transferFunds(int cashierId, int senderId, int receiverId, double am
     }
 
     // Методы получения информации
+    // Карта курсов валют, возвращает новую карту курсов, чтобы не дать изменить оригинальные курсы
     public Map<String, Double> getExchangeRates() {
         synchronized (exchangeRates) {
             return new HashMap<>(exchangeRates);
         }
     }
-
+// Список наблюдателей
     public List<Observer> getObservers() {
         return new ArrayList<>(observers);
     }
-
+// Метод удаления наблюдателя
     public void removeObserver(Observer observer) {
         observers.remove(observer);
     }
@@ -539,10 +533,12 @@ public void transferFunds(int cashierId, int senderId, int receiverId, double am
             notifyObservers("Добавлена новая транзакция: " + transaction.getType());
         }
     }
-
+// Очередь транзакций
     public LinkedBlockingQueue<Transaction> getTransactionQueue() {
         return transactionQueue;
     }
+
+// Метод завершения работы банковской системы
     public void shutdown() {
         try {
             notifyObservers("Инициировано завершение работы системы");
@@ -600,7 +596,7 @@ public void transferFunds(int cashierId, int senderId, int receiverId, double am
         }
     }
 
-
+// освобождаем ресурсы, чистим: клиенты, курсы, транзакции, наблюдатели
     private void clearResources() {
         clients.clear();
         exchangeRates.clear();
@@ -610,15 +606,14 @@ public void transferFunds(int cashierId, int senderId, int receiverId, double am
 
 }
 
-
-// Реализация класса Logger
+// Реализация класса Logger для отображения в консоли
 class Logger implements Observer {
     @Override
     public void update(String message) {
         System.out.println("LOG: " + message);
     }
 }
-
+// Пополнение
 class DepositTransaction extends Transaction {
     private double amount;
 
@@ -633,7 +628,7 @@ class DepositTransaction extends Transaction {
     }
 }
 
-// Добавляем остальные классы транзакций
+// Снятие
 class WithdrawTransaction extends Transaction {
     private double amount;
 
@@ -647,7 +642,7 @@ class WithdrawTransaction extends Transaction {
         bank.withdraw(cashierId, clientId, amount);
     }
 }
-
+// Перевод
 class TransferTransaction extends Transaction {
     private int receiverId;
     private double amount;
@@ -663,7 +658,7 @@ class TransferTransaction extends Transaction {
         bank.transferFunds(cashierId, getClientId(), receiverId, amount);
     }
 }
-
+// Обмен валют
 class ExchangeTransaction extends Transaction {
     private String fromCurrency;
     private String toCurrency;
@@ -682,6 +677,7 @@ class ExchangeTransaction extends Transaction {
     }
 }
 
+// Пример запуска Банковской системы
 public class BankApp {
     public static void main(String[] args) {
         int Tcount=0;
