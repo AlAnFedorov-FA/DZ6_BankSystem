@@ -4,11 +4,12 @@
 
 Структура приложения
 	Bank - основной класс, управляющий системой
-Хранилище клиентов (ConcurrentHashMap<Integer, Client>)
-Курсы валют (ConcurrentHashMap<String, Double>)
-Очередь транзакций (LinkedBlockingQueue<Transaction>)
-Список наблюдателей (List<Observer>)
-Сервис для управления кассами (ExecutorService)
+- Хранилище клиентов (ConcurrentHashMap<Integer, Client>)
+- Курсы валют (ConcurrentHashMap<String, Double>)
+- Очередь транзакций (LinkedBlockingQueue<Transaction>)
+- Список наблюдателей (List<Observer>)
+- Сервис для управления кассами (ExecutorService)
+
 Ключевые методы:
 •	addClient(Client client) - добавление клиента
 •	addTransaction(Transaction transaction) - добавление транзакции
